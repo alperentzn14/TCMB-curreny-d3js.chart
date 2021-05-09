@@ -1,0 +1,143 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>PROVİSİON CURRENCY</title>
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <!-- Load d3.js -->
+    <script src="https://d3js.org/d3.v4.js"></script>
+
+    <!-- Create a div where the graph will take place -->
+
+    <script>
+        $(document).ready(function () {
+            
+
+            LoadChart();
+
+            $("#ddlCurrencies").on("change", function () {
+                LoadChart();
+            });
+
+            function LoadChart() {
+                $.ajax({
+                    type: "GET",
+                    dataType: "json",
+                    contentType: "application/json",
+                    url: '/api/currency/findAll',
+                    success: function (result) {
+                        google.charts.load('current', {
+                            'packages': ['corechart']
+                        });
+                        google.charts.setOnLoadCallback(function () {
+                            drawChart(result);
+                        });
+                    }
+                });
+                function ParseDate(date) {
+                    date = date.substring(0, 10);
+                    return d3.timeParse("%Y-%m-%d")(date);
+                };
+
+                var margin = { top: 10, right: 30, bottom: 30, left: 60 },
+                    width = 460 - margin.left - margin.right,
+                    height = 400 - margin.top - margin.bottom;
+
+              
+
+                function drawChart(result) {
+                    var data = new google.visualization.DataTable();
+                    data.addColumn('string', 'CurrencyCode');
+                    data.addColumn('number', 'Value');
+                    data.addColumn('date', 'Date');
+                    var dataArray = [];
+
+                    var currencyOptionset = document.getElementById("ddlCurrencies");
+
+                    $.each(result, function (i, obj) {
+                        if (currencyOptionset.value == obj.currencyCode)
+                            dataArray.push([obj.currencyCode, obj.effectiveBuyingAmount, ParseDate(obj.insertDate)]);
+                    });             
+                    GenerateChart(dataArray);
+                    
+                };
+                function GenerateChart(data) { 
+                    document.getElementById("Piechart_div").innerHTML = "";
+                    var svg = d3.select("#Piechart_div")
+                        .append("svg")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform",
+                            "translate(" + margin.left + "," + margin.top + ")");
+                    
+                    var x = d3.scaleTime()
+                        .domain(d3.extent(data, function(d) { return d["2"]; }))
+                        .range([0, width]);
+                    svg.append("g")
+                        .attr("transform", "translate(0," + height + ")")
+                        .call(d3.axisBottom(x));
+                   
+                    var y = d3.scaleLinear()
+                        .domain([0, d3.max(data, function(d) { return +d["1"]; })])
+                        .range([height, 0]);
+                    svg.append("g")
+                        .call(d3.axisLeft(y));
+
+                    // Add the line
+                    svg.append("path")
+                        .datum(data)
+                        .attr("fill", "none")
+                        .attr("stroke", "steelblue")
+                        .attr("stroke-width", 1.5)
+                        .attr("d", d3.line()
+                            .x(function(d) {
+                                return x(d["2"])
+                            })
+                            .y(function(d) {
+                                return y(d["1"])
+                            })
+                        )
+                };                           
+            }
+        });
+    </script>
+
+
+
+
+</head>
+<body>
+    <div>
+        <label><b>Central Bank of the Republic of Turkey Exchange Rates Chart</b></label><br /><br />
+        <table border="0" cellpadding="0" cellspacing="0">
+            <br />
+            <tr>
+
+                <td>
+                    <label for="cars">Choose a Currency:</label>
+                    <select id="ddlCurrencies">
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="AUD">AUD</option>
+                        <option value="DKK">DKK</option>
+                        <option value="GBP">GBP</option>
+                        <option value="CHF">CHF</option>
+                        <option value="SEK">SEK</option>
+                        <option value="CAD">CAD</option>
+                        <option value="KWD">KWD</option>
+                        <option value="NOK">NOK</option>
+                        <option value="SAR">SAR</option>
+                        <option value="JPY">JPY</option>
+
+                    </select><br />
+                </td>
+            </tr>
+        </table><br /><br />
+    </div>
+    <div id="Piechart_div"></div>
+
+</body>
+</html>
